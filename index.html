@@ -74,7 +74,7 @@ textarea{min-height:90px;resize:vertical}
 <script>
 const SUPA='https://pebygdhmzxhoxooddcjz.supabase.co', KEY='sb_publishable_NhUf1QKCMxH81wGqOf2AMg_0ATjywjK';
 const FN=SUPA+'/functions/v1/cafe24-admin', RED='https://philmart2026-kim.github.io';
-const SCOPE='mall.read_product,mall.write_product,mall.read_category';
+const SCOPE='mall.read_application,mall.write_application,mall.read_category,mall.read_product,mall.write_product';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const H={'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY};
