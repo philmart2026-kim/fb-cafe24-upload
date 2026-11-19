@@ -20,7 +20,7 @@ textarea{min-height:90px;resize:vertical}
 .btn:disabled{opacity:.5}.btn.ghost{background:#fff;color:var(--g);border:1px solid var(--g)}.btn.sm{padding:7px 12px;font-size:13px}
 .err{color:var(--red);font-size:13px;margin-top:8px;min-height:1em}.hidden{display:none!important}
 .mall{border:1px solid var(--bd);border-radius:12px;padding:12px;margin:10px 0}
-.mall.off{opacity:.55}.mh{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mall.off .mh label,.mall.off .row{opacity:.55}.mh{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mh label{margin:0;color:#1f2a1c;font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
 .mh input[type=checkbox]{width:20px;height:20px}
 .tag{font-size:12px;border-radius:20px;padding:3px 9px;background:var(--g2);color:var(--g);font-weight:700}
@@ -99,10 +99,7 @@ $('#lf').onsubmit=async e=>{ e.preventDefault(); $('#le').textContent='';
 $('#out').onclick=()=>{ rpc('app_logout',{p_token:token}).catch(()=>{}); token=null; LS.del('pm-c24-token'); start(); };
 
 async function start(){
-  const show=id=>{ $('#login').classList.toggle('hidden',id!=='login'); $('#main').classList.toggle('hidden',id!=='main'); $('#out').classList.toggle('hidden',id!=='main'); };
-  if(!token){ show('login'); return; }
-  const me=await rpc('app_me',{p_token:token}).catch(()=>({}));
-  if(!me.ok||!me.admin){ token=null; LS.del('pm-c24-token'); show('login'); if(me.ok) $('#le').textContent='관리자 번호만 쓸 수 있어요.'; return; }
+  const show=id=>{ $('#login').classList.toggle('hidden',id!=='login'); $('#main').classList.toggle('hidden',id!=='main'); $('#out').classList.add('hidden'); };
   show('main');
   const f=LS.get('pm-c24-flash'); if(f){ say(f,f.startsWith('✅')); LS.del('pm-c24-flash'); }
   const pre=k=>LS.get('pm-c24-pre-'+k);
@@ -114,9 +111,9 @@ async function start(){
     return `<div class="mall ${x.connected?'':'off'}" data-m="${x.mall}">
       <div class="mh"><label><input type="checkbox" class="use" ${x.connected?'checked':'disabled'}> ${esc(x.label)} <small style="color:var(--mut);font-weight:400">${x.mall}</small></label>
       ${x.connected?`<span class="tag">연결됨</span>`: link?`<a class="btn sm" href="${link}">연결하기</a>`:`<span class="tag no">앱 정보 필요</span>`}</div>
-      ${x.connected?`<div class="row"><div><label>판매가 *</label><input class="pr" inputmode="numeric" value="${esc(pre('price')||'')}"></div>
-      <div><label>카테고리</label><select class="ct"><option value="">불러오는 중…</option></select></div></div>
-      <div class="tg"><label><input type="checkbox" class="dp" checked> 진열</label><label><input type="checkbox" class="sl" checked> 판매</label></div>`:''}
+      <div class="row"><div><label>판매가 *</label><input class="pr" inputmode="numeric" value="${esc(pre('price')||'')}" ${x.connected?'':'disabled'}></div>
+      <div><label>분류 (카테고리)</label><select class="ct" ${x.connected?'':'disabled'}><option value="">${x.connected?'불러오는 중…':'연결하면 이 쇼핑몰 분류가 나와요'}</option></select></div></div>
+      ${x.connected?`<div class="tg"><label><input type="checkbox" class="dp" checked> 진열</label><label><input type="checkbox" class="sl" checked> 판매</label></div>`:''}
     </div>`; }).join('');
   document.querySelectorAll('.mall .use').forEach(c=>c.onchange=()=>c.closest('.mall').classList.toggle('off',!c.checked));
   const prs=[...document.querySelectorAll('.mall .pr')]; prs.forEach(p=>p.addEventListener('input',()=>{ prs.forEach(o=>{ if(o!==p&&!o.dataset.touched) o.value=p.value; }); p.dataset.touched=1; }));
@@ -128,7 +125,7 @@ async function loadCats(mall){
     const L=(j.categories||[]).filter(c=>c.display_type!=='F').sort((a,b)=>String(a.full_category_name?.[1]||a.category_name).localeCompare(String(b.full_category_name?.[1]||b.category_name)));
     const nm=c=>{ const f=c.full_category_name; return f? Object.values(f).filter(Boolean).join(' > ') : c.category_name; };
     const last=LS.get('pm-c24-cat-'+mall);
-    sel.innerHTML='<option value="">(카테고리 없이)</option>'+L.map(c=>`<option value="${c.category_no}" ${String(c.category_no)===last?'selected':''}>${esc(nm(c))}</option>`).join('');
+    sel.innerHTML='<option value="">— 분류 고르기 —</option>'+L.map(c=>`<option value="${c.category_no}" ${String(c.category_no)===last?'selected':''}>${esc(nm(c))}</option>`).join('');
   }catch(e){ sel.innerHTML='<option value="">카테고리를 못 불러왔어요</option>'; }
 }
 
