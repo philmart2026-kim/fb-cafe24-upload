@@ -176,7 +176,7 @@ $('#go').onclick=async()=>{
   const j=await fn({action:'create',token,malls:sel,image:imgB64,product:{name,spec:$('#ps').value.trim(),supply_price:Number(($('#pc').value||'0').replace(/[^\d]/g,''))||0,description:$('#pd').value.replace(/\n/g,'<br>')}}).catch(e=>({ok:false,err:String(e)}));
   $('#go').disabled=false; $('#go').textContent='카페24에 등록하기';
   const lab=m=>(malls.find(x=>x.mall===m)||{}).label||m;
-  $('#out2').innerHTML= j.ok? j.results.map(r=>r.ok?`<div class="res ok">✅ ${esc(lab(r.mall))} 등록 완료 · 상품번호 ${r.product_no} ${r.url?`· <a href="${r.url}" target="_blank">보기</a>`:''}</div>`:`<div class="res bad">❌ ${esc(lab(r.mall))}: ${esc(r.err)}</div>`).join('') : `<div class="res bad">❌ ${esc(j.err||'오류')}</div>`;
+  $('#out2').innerHTML= j.ok? j.results.map(r=>r.ok?`<div class="res ok">✅ ${esc(lab(r.mall))} 등록 완료 · 상품번호 ${r.product_no} ${r.url?`· <a href="${r.url}" target="_blank">보기</a>`:''}${r.img_err?`<br><span style="color:var(--red)">⚠️ 사진은 못 올렸어요. 카페24에서 직접 넣어 주세요.</span>`:''}</div>`:`<div class="res bad">❌ ${esc(lab(r.mall))}: ${esc(r.err)}</div>`).join('') : `<div class="res bad">❌ ${esc(j.err||'오류')}</div>`;
   if(j.ok&&j.results.every(r=>r.ok)){ ['name','spec','price','cost'].forEach(k=>LS.del('pm-c24-pre-'+k)); }
 };
 </script></body></html>
