@@ -126,7 +126,7 @@ async function start(){
   document.querySelectorAll('.mall a[target]').forEach(a=>a.addEventListener('click',()=>{ $('#pastebox').classList.remove('hidden'); setTimeout(()=>$('#pasteurl').focus(),300); }));
   document.querySelectorAll('.secgo').forEach(bt=>bt.onclick=async()=>{ const d=bt.closest('.mall'), v=d.querySelector('.sec').value.trim(); if(v.length<10){ alert('Client Secret을 붙여 넣어 주세요.'); return; }
     bt.disabled=true; const j=await fn({action:'set_secret',mall:d.dataset.m,secret:v}).catch(e=>({ok:false,err:String(e)}));
-    if(j.ok){ LS.set('pm-c24-flash','✅ '+d.dataset.m+' Secret 저장 완료 — 이제 연결하기를 눌러 주세요'); start(); } else { bt.disabled=false; say('❌ 저장 실패: '+(j.err||''),false); } });
+    if(j.ok){ LS.del('pm-c24-lite-'+d.dataset.m); LS.set('pm-c24-flash','✅ '+d.dataset.m+' Secret 저장 완료 — 이제 연결하기를 눌러 주세요'); start(); } else { bt.disabled=false; say('❌ 저장 실패: '+(j.err||''),false); } });
   if(malls.some(x=>!x.connected&&x.has_secret)) $('#pastebox').classList.remove('hidden');
   document.querySelectorAll('.mall .use').forEach(c=>c.onchange=()=>c.closest('.mall').classList.toggle('off',!c.checked));
   const prs=[...document.querySelectorAll('.mall .pr')]; prs.forEach(p=>p.addEventListener('input',()=>{ prs.forEach(o=>{ if(o!==p&&!o.dataset.touched) o.value=p.value; }); p.dataset.touched=1; }));
