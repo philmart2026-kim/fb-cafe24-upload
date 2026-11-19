@@ -74,7 +74,7 @@ textarea{min-height:90px;resize:vertical}
 <script>
 const SUPA='https://pebygdhmzxhoxooddcjz.supabase.co', KEY='sb_publishable_NhUf1QKCMxH81wGqOf2AMg_0ATjywjK';
 const FN=SUPA+'/functions/v1/cafe24-admin', RED='https://philmart2026-kim.github.io';
-const SCOPE='mall.read_application,mall.write_application,mall.read_category,mall.read_product,mall.write_product';
+const SCOPE='mall.read_application,mall.write_application,mall.read_category,mall.write_category,mall.read_product,mall.write_product';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const H={'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY};
@@ -116,11 +116,12 @@ async function start(){
     const link=x.client_id?`https://${x.mall}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${x.client_id}&state=c24_${x.mall}&redirect_uri=${encodeURIComponent(RED)}&scope=${sc}`:'';
     return `<div class="mall ${x.connected?'':'off'}" data-m="${x.mall}">
       <div class="mh"><label><input type="checkbox" class="use" ${x.connected?'checked':'disabled'}> ${esc(x.label)} <small style="color:var(--mut);font-weight:400">${x.mall}</small></label>
-      ${x.connected?`<span class="tag">연결됨</span>`: !x.client_id?`<span class="tag no">앱 정보 필요</span>`: x.has_secret?`<a class="btn sm" href="${link}" target="_blank">연결하기</a>`:`<span class="tag no">① Secret 넣기</span>`}</div>
+      ${x.connected? (x.scopes.includes('mall.write_category')?`<span class="tag">연결됨</span>`:`<span style="display:flex;gap:6px;align-items:center"><span class="tag">연결됨</span><a class="btn sm ghost rc" href="${link.replace(/scope=[^&]*/,'scope='+SCOPE)}" target="_blank">메인진열 권한 다시 연결</a></span>`): !x.client_id?`<span class="tag no">앱 정보 필요</span>`: x.has_secret?`<a class="btn sm" href="${link}" target="_blank">연결하기</a>`:`<span class="tag no">① Secret 넣기</span>`}</div>
       ${!x.connected&&x.client_id&&!x.has_secret?`<div style="display:flex;gap:8px;margin-top:8px"><input class="sec" placeholder="카페24 앱의 Client Secret 붙여넣기" autocomplete="off"><button class="btn sm secgo">저장</button></div>`:''}
       <div class="row"><div><label>판매가 *</label><input class="pr" inputmode="numeric" value="${esc(pre('price')||'')}" ${x.connected?'':'disabled'}></div>
       <div><label>분류 (카테고리)</label><select class="ct" ${x.connected?'':'disabled'}><option value="">${x.connected?'불러오는 중…':'연결하면 이 쇼핑몰 분류가 나와요'}</option></select></div></div>
-      ${x.connected?`<div class="tg"><label><input type="checkbox" class="dp" checked> 진열</label><label><input type="checkbox" class="sl" checked> 판매</label></div>`:''}
+      ${x.connected?`<label>메인 진열</label><div class="mains" style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:14px">불러오는 중…</div>
+      <div class="tg"><label><input type="checkbox" class="dp" checked> 진열</label><label><input type="checkbox" class="sl" checked> 판매</label></div>`:''}
     </div>`; }).join('');
   document.querySelectorAll('.mall a[target]').forEach(a=>a.addEventListener('click',()=>{ $('#pastebox').classList.remove('hidden'); setTimeout(()=>$('#pasteurl').focus(),300); }));
   document.querySelectorAll('.secgo').forEach(bt=>bt.onclick=async()=>{ const d=bt.closest('.mall'), v=d.querySelector('.sec').value.trim(); if(v.length<10){ alert('Client Secret을 붙여 넣어 주세요.'); return; }
@@ -129,7 +130,15 @@ async function start(){
   if(malls.some(x=>!x.connected&&x.has_secret)) $('#pastebox').classList.remove('hidden');
   document.querySelectorAll('.mall .use').forEach(c=>c.onchange=()=>c.closest('.mall').classList.toggle('off',!c.checked));
   const prs=[...document.querySelectorAll('.mall .pr')]; prs.forEach(p=>p.addEventListener('input',()=>{ prs.forEach(o=>{ if(o!==p&&!o.dataset.touched) o.value=p.value; }); p.dataset.touched=1; }));
-  for(const x of malls.filter(x=>x.connected)) loadCats(x.mall);
+  for(const x of malls.filter(x=>x.connected)){ loadCats(x.mall); loadMains(x); }
+}
+async function loadMains(x){
+  const box=document.querySelector(`.mall[data-m="${x.mall}"] .mains`); if(!box) return;
+  const j=await fn({action:'mains',mall:x.mall}).catch(()=>({ok:false}));
+  if(!j.ok||!j.mains){ box.innerHTML='<span class="note">이 쇼핑몰 앱에 분류 권한이 없어서 메인 진열을 못 불러왔어요.</span>'; return; }
+  const canW=x.scopes.includes('mall.write_category');
+  box.innerHTML=j.mains.map(m=>`<label style="display:flex;gap:5px;align-items:center;margin:0;color:#1f2a1c"><input type="checkbox" class="mn" value="${m.group}" ${canW?'':'disabled'} style="width:17px;height:17px"> ${esc(m.name)}</label>`).join('')
+    + (canW?'':'<div class="note" style="width:100%">메인 진열을 고르려면 위의 "메인진열 권한 다시 연결"을 해 주세요.</div>');
 }
 async function loadCats(mall){
   const sel=document.querySelector(`.mall[data-m="${mall}"] .ct`); if(!sel) return;
@@ -167,7 +176,7 @@ $('#go').onclick=async()=>{
   const name=$('#pn').value.trim(); if(!name){ alert('상품명을 넣어 주세요.'); return; }
   const sel=[...document.querySelectorAll('.mall')].filter(d=>d.querySelector('.use:checked')).map(d=>({
     mall:d.dataset.m, price:Number((d.querySelector('.pr')?.value||'').replace(/[^\d]/g,'')), category_no:d.querySelector('.ct')?.value||'',
-    display:d.querySelector('.dp')?.checked, selling:d.querySelector('.sl')?.checked }));
+    display:d.querySelector('.dp')?.checked, selling:d.querySelector('.sl')?.checked, mains:[...d.querySelectorAll('.mn:checked')].map(c=>Number(c.value)) }));
   if(!sel.length){ alert('올릴 쇼핑몰을 하나 이상 골라 주세요.'); return; }
   const bad=sel.find(s=>!s.price); if(bad){ alert('판매가를 넣어 주세요: '+bad.mall); return; }
   if(!imgB64&&!confirm('사진 없이 등록할까요?')) return;
@@ -176,7 +185,7 @@ $('#go').onclick=async()=>{
   const j=await fn({action:'create',token,malls:sel,image:imgB64,product:{name,spec:$('#ps').value.trim(),supply_price:Number(($('#pc').value||'0').replace(/[^\d]/g,''))||0,description:$('#pd').value.replace(/\n/g,'<br>')}}).catch(e=>({ok:false,err:String(e)}));
   $('#go').disabled=false; $('#go').textContent='카페24에 등록하기';
   const lab=m=>(malls.find(x=>x.mall===m)||{}).label||m;
-  $('#out2').innerHTML= j.ok? j.results.map(r=>r.ok?`<div class="res ok">✅ ${esc(lab(r.mall))} 등록 완료 · 상품번호 ${r.product_no} ${r.url?`· <a href="${r.url}" target="_blank">보기</a>`:''}${r.img_err?`<br><span style="color:var(--red)">⚠️ 사진은 못 올렸어요. 카페24에서 직접 넣어 주세요.</span>`:''}</div>`:`<div class="res bad">❌ ${esc(lab(r.mall))}: ${esc(r.err)}</div>`).join('') : `<div class="res bad">❌ ${esc(j.err||'오류')}</div>`;
+  $('#out2').innerHTML= j.ok? j.results.map(r=>r.ok?`<div class="res ok">✅ ${esc(lab(r.mall))} 등록 완료 · 상품번호 ${r.product_no} ${r.url?`· <a href="${r.url}" target="_blank">보기</a>`:''}${r.img_err?`<br><span style="color:var(--red)">⚠️ 사진은 못 올렸어요. 카페24에서 직접 넣어 주세요.</span>`:''}${r.main_err?`<br><span style="color:var(--red)">⚠️ 메인 진열은 못 넣었어요. 카페24에서 체크해 주세요.</span>`:''}</div>`:`<div class="res bad">❌ ${esc(lab(r.mall))}: ${esc(r.err)}</div>`).join('') : `<div class="res bad">❌ ${esc(j.err||'오류')}</div>`;
   if(j.ok&&j.results.every(r=>r.ok)){ ['name','spec','price','cost'].forEach(k=>LS.del('pm-c24-pre-'+k)); }
 };
 </script></body></html>
