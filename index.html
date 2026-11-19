@@ -59,6 +59,11 @@ textarea{min-height:90px;resize:vertical}
   <div class="card">
     <h2>올릴 쇼핑몰</h2>
     <div id="malls"></div>
+    <div id="pastebox" class="mall hidden" style="background:#fffbe9">
+      <b style="font-size:14px">연결 마무리</b>
+      <div class="note" style="margin:4px 0 8px">새 탭에서 <b>허용</b>을 누르면 "404" 페이지가 떠요. 그 탭의 <b>주소창 주소 전체</b>를 복사해서 여기에 붙여 넣으세요. (1분 안에)</div>
+      <div style="display:flex;gap:8px"><input id="pasteurl" placeholder="https://philmart2026-kim.github.io/?code=..."><button class="btn sm" id="pastego">연결</button></div>
+    </div>
     <div class="note">가격은 쇼핑몰마다 다르게 넣을 수 있어요. 처음 넣은 가격이 다른 쇼핑몰에도 채워져요.</div>
   </div>
 
@@ -68,7 +73,7 @@ textarea{min-height:90px;resize:vertical}
 </div>
 <script>
 const SUPA='https://pebygdhmzxhoxooddcjz.supabase.co', KEY='sb_publishable_NhUf1QKCMxH81wGqOf2AMg_0ATjywjK';
-const FN=SUPA+'/functions/v1/cafe24-admin', RED=location.origin+location.pathname;
+const FN=SUPA+'/functions/v1/cafe24-admin', RED='https://philmart2026-kim.github.io';
 const SCOPE='mall.read_product,mall.write_product,mall.read_category';
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const LS={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
@@ -110,11 +115,13 @@ async function start(){
     const link=x.client_id?`https://${x.mall}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${x.client_id}&state=c24_${x.mall}&redirect_uri=${encodeURIComponent(RED)}&scope=${SCOPE}`:'';
     return `<div class="mall ${x.connected?'':'off'}" data-m="${x.mall}">
       <div class="mh"><label><input type="checkbox" class="use" ${x.connected?'checked':'disabled'}> ${esc(x.label)} <small style="color:var(--mut);font-weight:400">${x.mall}</small></label>
-      ${x.connected?`<span class="tag">연결됨</span>`: link?`<a class="btn sm" href="${link}">연결하기</a>`:`<span class="tag no">앱 정보 필요</span>`}</div>
+      ${x.connected?`<span class="tag">연결됨</span>`: link?`<a class="btn sm" href="${link}" target="_blank">연결하기</a>`:`<span class="tag no">앱 정보 필요</span>`}</div>
       <div class="row"><div><label>판매가 *</label><input class="pr" inputmode="numeric" value="${esc(pre('price')||'')}" ${x.connected?'':'disabled'}></div>
       <div><label>분류 (카테고리)</label><select class="ct" ${x.connected?'':'disabled'}><option value="">${x.connected?'불러오는 중…':'연결하면 이 쇼핑몰 분류가 나와요'}</option></select></div></div>
       ${x.connected?`<div class="tg"><label><input type="checkbox" class="dp" checked> 진열</label><label><input type="checkbox" class="sl" checked> 판매</label></div>`:''}
     </div>`; }).join('');
+  document.querySelectorAll('.mall a[target]').forEach(a=>a.addEventListener('click',()=>{ $('#pastebox').classList.remove('hidden'); setTimeout(()=>$('#pasteurl').focus(),300); }));
+  if(malls.some(x=>!x.connected&&x.client_id)) $('#pastebox').classList.remove('hidden');
   document.querySelectorAll('.mall .use').forEach(c=>c.onchange=()=>c.closest('.mall').classList.toggle('off',!c.checked));
   const prs=[...document.querySelectorAll('.mall .pr')]; prs.forEach(p=>p.addEventListener('input',()=>{ prs.forEach(o=>{ if(o!==p&&!o.dataset.touched) o.value=p.value; }); p.dataset.touched=1; }));
   for(const x of malls.filter(x=>x.connected)) loadCats(x.mall);
@@ -130,6 +137,19 @@ async function loadCats(mall){
 }
 
 // 사진: 긴 변 1200px로 줄여 JPEG로
+async function doPaste(v){
+  let u; try{ u=new URL(v.trim()); }catch(e){ say('❌ 주소를 그대로 붙여 넣어 주세요.',false); return; }
+  const code=u.searchParams.get('code'), st=u.searchParams.get('state')||'';
+  if(u.searchParams.get('error')){ say('❌ 연결이 거절됐어요: '+(u.searchParams.get('error_description')||u.searchParams.get('error')),false); return; }
+  if(!code||!st.startsWith('c24_')){ say('❌ 주소에 연결 코드가 없어요. 허용 후 뜬 주소를 복사해 주세요.',false); return; }
+  const mall=st.slice(4); say('연결하는 중…',true);
+  const j=await fn({action:'exchange',mall,code,redirect_uri:RED}).catch(e=>({ok:false,err:String(e)}));
+  $('#pasteurl').value='';
+  if(j.ok){ LS.set('pm-c24-flash','✅ '+mall+' 연결 완료'); start(); }
+  else say('❌ '+mall+' 연결 실패: '+(String(j.err||'').includes('no_secret')?'Supabase에 Secret이 아직 없어요.':String(j.err||'').includes('invalid_grant')?'코드 시간이 지났어요. 연결하기를 다시 눌러 주세요.':j.err),false);
+}
+$('#pastego').onclick=()=>doPaste($('#pasteurl').value);
+$('#pasteurl').addEventListener('paste',e=>setTimeout(()=>doPaste($('#pasteurl').value),50));
 $('#pf').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const im=new Image();
   im.onload=()=>{ const s=Math.min(1,1200/Math.max(im.width,im.height)); const c=document.createElement('canvas'); c.width=Math.round(im.width*s); c.height=Math.round(im.height*s);
     const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
