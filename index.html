@@ -48,6 +48,12 @@ textarea{min-height:90px;resize:vertical}
     <h2>사진 올리기 <small style="color:var(--mut);font-weight:400">Manila Mart · 하루 2번(오전 10:30·저녁 7:30) Slack으로 미리보기</small></h2>
     <div class="row"><div><label>카테고리 *</label><input id="fbcat" list="fbcats" placeholder="예: NOODLES"><datalist id="fbcats"></datalist></div>
     <div><label>사진 (여러 장 가능)</label><input id="fbfiles" type="file" accept="image/*" multiple style="padding:8px"></div></div>
+    <div style="margin-top:10px;padding:10px 12px;border:1px dashed var(--bd);border-radius:10px;background:#fafcf7">
+      <b style="font-size:14px">📁 폴더째 올리기</b> <span class="note">— 카테고리별 하위 폴더가 있는 상위 폴더를 고르면 폴더 이름이 카테고리가 돼요 (예: 페북사진\NOODLES\*.jpg)</span>
+      <input id="fbdir" type="file" webkitdirectory directory multiple style="padding:8px;margin-top:6px">
+      <div id="fbdirinfo" class="note"></div>
+      <button id="fbdirup" class="btn sm" style="margin-top:6px" disabled>폴더 사진 모두 저장</button>
+    </div>
     <div id="fbprev"></div>
     <button id="fbup" class="btn" style="width:100%;margin-top:10px" disabled>사진함에 저장</button>
   </div>
@@ -260,4 +266,17 @@ async function showDraft(id,t){ $('#tabs').classList.add('hidden'); $('#main').c
     $('#dres').innerHTML= r.ok? `<div class="res ok">${r.status==='posted'?'✅ Manila Mart에 올렸어요!':'건너뛰었어요. 다음 순서에 다른 카테고리가 올라와요.'}</div>` : `<div class="res bad">❌ ${esc(r.err||'오류')}</div>`;
     if(!r.ok){ $('#dok').disabled=$('#dno').disabled=false; } };
   $('#dok').onclick=()=>go(true); $('#dno').onclick=()=>go(false); }
+
+let fbDir=[];
+$('#fbdir').onchange=e=>{ fbDir=[...e.target.files].filter(f=>/^image\//.test(f.type)).map(f=>{ const parts=(f.webkitRelativePath||f.name).split('/'); return {f, cat:(parts.length>2?parts[parts.length-2]:parts[0]).trim()}; });
+  const g={}; fbDir.forEach(x=>g[x.cat]=(g[x.cat]||0)+1);
+  $('#fbdirinfo').innerHTML=fbDir.length? Object.entries(g).map(([c,n])=>`<b>${esc(c)}</b> ${n}장`).join(' · ') : '사진이 없어요.';
+  $('#fbdirup').disabled=!fbDir.length; $('#fbdirup').textContent=`폴더 사진 ${fbDir.length}장 모두 저장`; };
+$('#fbdirup').onclick=async()=>{ $('#fbdirup').disabled=true; let ok=0,bad=0;
+  for(let i=0;i<fbDir.length;i++){ $('#fbdirup').textContent=`저장 중… ${i+1}/${fbDir.length}`;
+    const name=fbDir[i].f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim(); const m=name.match(/(\d[\d,]{2,})\s*(원|won)?$/i);
+    const d=await shrink(fbDir[i].f);
+    const j=await fb({action:'upload',page:'manila',category:fbDir[i].cat,title:m?name.slice(0,m.index).trim():'',price:m?m[1].replace(/,/g,''):'',image:d.split(',')[1]}).catch(()=>({ok:false})); j.ok?ok++:bad++; }
+  fbDir=[]; $('#fbdir').value=''; $('#fbdirinfo').innerHTML=''; $('#fbdirup').textContent='폴더 사진 모두 저장';
+  fbsay(`✅ ${ok}장 저장${bad?` · ❌ ${bad}장 실패`:''}`, !bad); fbLoad(); };
 </script></body></html>
