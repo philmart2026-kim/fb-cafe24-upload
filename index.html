@@ -106,13 +106,14 @@ $('#out').onclick=()=>{ rpc('app_logout',{p_token:token}).catch(()=>{}); token=n
 async function start(){
   const show=id=>{ $('#login').classList.toggle('hidden',id!=='login'); $('#main').classList.toggle('hidden',id!=='main'); $('#out').classList.add('hidden'); };
   show('main');
-  const f=LS.get('pm-c24-flash'); if(f){ say(f,f.startsWith('✅')); LS.del('pm-c24-flash'); }
+  const f=LS.get('pm-c24-flash'); if(f){ say(f,!f.startsWith('❌')); LS.del('pm-c24-flash'); }
   const pre=k=>LS.get('pm-c24-pre-'+k);
   if(pre('name')!=null){ $('#pn').value=pre('name'); $('#ps').value=pre('spec')||''; $('#pc').value=pre('cost')||''; }
   const m=await fn({action:'malls'}); malls=m.malls||[];
   const order=['hnlmall','muramart','pmtraders']; malls.sort((a,b)=>order.indexOf(a.mall)-order.indexOf(b.mall));
   $('#malls').innerHTML=malls.map(x=>{
-    const link=x.client_id?`https://${x.mall}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${x.client_id}&state=c24_${x.mall}&redirect_uri=${encodeURIComponent(RED)}&scope=${SCOPE}`:'';
+    const sc=LS.get('pm-c24-lite-'+x.mall)?'mall.read_application,mall.write_application,mall.read_product,mall.write_product':SCOPE;
+    const link=x.client_id?`https://${x.mall}.cafe24api.com/api/v2/oauth/authorize?response_type=code&client_id=${x.client_id}&state=c24_${x.mall}&redirect_uri=${encodeURIComponent(RED)}&scope=${sc}`:'';
     return `<div class="mall ${x.connected?'':'off'}" data-m="${x.mall}">
       <div class="mh"><label><input type="checkbox" class="use" ${x.connected?'checked':'disabled'}> ${esc(x.label)} <small style="color:var(--mut);font-weight:400">${x.mall}</small></label>
       ${x.connected?`<span class="tag">연결됨</span>`: !x.client_id?`<span class="tag no">앱 정보 필요</span>`: x.has_secret?`<a class="btn sm" href="${link}" target="_blank">연결하기</a>`:`<span class="tag no">① Secret 넣기</span>`}</div>
@@ -144,7 +145,9 @@ async function loadCats(mall){
 async function doPaste(v){
   let u; try{ u=new URL(v.trim()); }catch(e){ say('❌ 주소를 그대로 붙여 넣어 주세요.',false); return; }
   const code=u.searchParams.get('code'), st=u.searchParams.get('state')||'';
-  if(u.searchParams.get('error')){ say('❌ 연결이 거절됐어요: '+(u.searchParams.get('error_description')||u.searchParams.get('error')),false); return; }
+  if(u.searchParams.get('error')){ $('#pasteurl').value='';
+    if(u.searchParams.get('error')==='invalid_scope'){ const m=(u.searchParams.get('state')||'').slice(4)||'pmtraders'; LS.set('pm-c24-lite-'+m,'1'); LS.set('pm-c24-flash','⚠️ '+m+' 앱에 분류 권한이 없어서, 분류 없이 연결하도록 바꿨어요. 연결하기를 다시 눌러 주세요.'); start(); return; }
+    say('❌ 연결이 거절됐어요: '+(u.searchParams.get('error_description')||u.searchParams.get('error')),false); return; }
   if(!code||!st.startsWith('c24_')){ say('❌ 주소에 연결 코드가 없어요. 허용 후 뜬 주소를 복사해 주세요.',false); return; }
   const mall=st.slice(4); say('연결하는 중…',true);
   const j=await fn({action:'exchange',mall,code,redirect_uri:RED}).catch(e=>({ok:false,err:String(e)}));
