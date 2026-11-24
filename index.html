@@ -7,12 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="카페24 업로드">
 <style>
 :root{--g:#3f6b26;--g2:#e6f0dc;--bd:#dfe5d6;--mut:#6e7968;--red:#a33224;--bg:#f3f5ef;--card:#fff;--tx:#1f2a1c}
-body.t-blue{--g:#1f4e8c;--g2:#e1ebf7;--bd:#d6dfeb;--mut:#66748a;--bg:#f1f4f9}
-body.t-purple{--g:#5b3d8f;--g2:#ece4f7;--bd:#e0d8ec;--mut:#75698a;--bg:#f5f2fa}
-body.t-orange{--g:#b4561c;--g2:#fbe9dc;--bd:#eedccd;--mut:#86705f;--bg:#fbf6f1}
-body.t-dark{--g:#5f9e3e;--g2:#25331f;--bd:#3a4436;--mut:#a3ad9d;--red:#ff8a7a;--bg:#161a15;--card:#22281f;--tx:#e9eee5}
-body.t-dark input,body.t-dark select,body.t-dark textarea{color:var(--tx)}
-body.t-dark .res.bad{background:#3b2220}body.t-dark #pastebox{background:#2e2b1c!important}
+
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--bg);color:var(--tx)}
 header{background:var(--g);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
 header b{font-size:17px}header button{background:transparent;border:1px solid #ffffff80;color:#fff;border-radius:8px;padding:5px 10px;font-size:13px}
@@ -55,17 +50,41 @@ textarea{min-height:90px;resize:vertical}
  .colR #go{position:sticky;bottom:12px;box-shadow:0 6px 18px rgba(31,42,28,.25);padding:15px}
  .mall{margin:8px 0}
 }
-.hset{display:flex;gap:8px;align-items:center;font-size:13px}
-.hset select{width:auto;padding:4px 8px;font-size:13px;border-radius:8px;background:#ffffff22;color:#fff;border:1px solid #ffffff80}
-.hset select option{color:#1f2a1c}
-.fs{display:flex;border:1px solid #ffffff80;border-radius:8px;overflow:hidden}
-.fs button{border:0;border-radius:0;background:transparent;color:#fff;padding:3px 9px;cursor:pointer}
-.fs button.on{background:#ffffff40}
+:root{--nav:#265a42;--on:#fff}
+html[data-theme="light"]{--bg:#f3f5f2;--card:#ffffff;--bd:#d9ded6;--tx:#1d241f;--mut:#5f6b62;--g:#2f6b4f;--g2:#e3efe7;--red:#a83232;--nav:#265a42;--on:#fff;color-scheme:light}
+html[data-theme="dark"]{--bg:#141916;--card:#1c231f;--bd:#2f3a33;--tx:#e6ece7;--mut:#9aa89e;--g:#6fbf94;--g2:#213429;--red:#e27a7a;--nav:#2f6b4f;--on:#0e1512;color-scheme:dark}
+html[data-theme="mint"]{--bg:#e8f3ec;--card:#f6fbf7;--bd:#cfe2d5;--tx:#1b2a21;--mut:#577060;--g:#2e7d55;--g2:#d5ebde;--red:#a83232;--nav:#2a6b4a;--on:#fff;color-scheme:light}
+html[data-theme="sage"]{--bg:#e8ece2;--card:#f5f7f1;--bd:#d2d9c8;--tx:#252b20;--mut:#5f6856;--g:#4f7535;--g2:#dfe8d2;--red:#a83232;--nav:#4a6234;--on:#fff;color-scheme:light}
+html[data-theme="eyecare"]{--bg:#c7e6cb;--card:#e2f2e4;--bd:#a8cdad;--tx:#1d2b1f;--mut:#4a634e;--g:#2b6a47;--g2:#b5dbbb;--red:#a83232;--nav:#2b5e40;--on:#fff;color-scheme:light}
+html[data-theme="forest"]{--bg:#0f1e18;--card:#15281f;--bd:#28443a;--tx:#e1eee6;--mut:#9bb6a6;--g:#8fd3a8;--g2:#1e3a2b;--red:#ef8a8a;--nav:#2f6b4f;--on:#0e1512;color-scheme:dark}
+html[data-theme="ocean"]{--bg:#eef3f8;--card:#ffffff;--bd:#d3dde8;--tx:#17212b;--mut:#5a6878;--g:#1f5f99;--g2:#e0ecf7;--red:#a83232;--nav:#1c4f80;--on:#fff;color-scheme:light}
+html[data-theme="sepia"]{--bg:#f3eee2;--card:#fbf8f0;--bd:#e0d6c3;--tx:#2b2418;--mut:#6e624d;--g:#8a5a1f;--g2:#f1e4cc;--red:#a83232;--nav:#6b4518;--on:#fff;color-scheme:light}
+html[data-theme="lavender"]{--bg:#f5f3fa;--card:#ffffff;--bd:#ddd8ea;--tx:#221d2e;--mut:#635c75;--g:#5b45a8;--g2:#ebe6f8;--red:#a83232;--nav:#45338a;--on:#fff;color-scheme:light}
+html[data-theme="navy"]{--bg:#0f1623;--card:#172131;--bd:#2a3950;--tx:#e4eaf3;--mut:#9aa8bb;--g:#7cb3f0;--g2:#1c2d45;--red:#ef8a8a;--nav:#2c5a8e;--on:#0e1512;color-scheme:dark}
+html[data-theme="night"]{--bg:#0d0d0d;--card:#1a1a1a;--bd:#333333;--tx:#ececec;--mut:#a3a3a3;--g:#f0b35a;--g2:#33281a;--red:#ff8a80;--nav:#454545;--on:#0e1512;color-scheme:dark}
+html[data-theme="contrast"]{--bg:#ffffff;--card:#ffffff;--bd:#6b6b6b;--tx:#000000;--mut:#2e2e2e;--g:#00502f;--g2:#d4efe0;--red:#b00000;--nav:#000000;--on:#fff;color-scheme:light}
+@media (prefers-color-scheme:dark){html:not([data-theme]){--bg:#141916;--card:#1c231f;--bd:#2f3a33;--tx:#e6ece7;--mut:#9aa89e;--g:#6fbf94;--g2:#213429;--red:#e27a7a;--nav:#2f6b4f;--on:#0e1512;color-scheme:dark}}
+html[data-theme="contrast"] body{font-weight:500}
+html[data-fs="s"] body{zoom:.9}html[data-fs="l"] body{zoom:1.12}html[data-fs="xl"] body{zoom:1.25}
+header{background:var(--nav)!important}.btn{color:var(--on)}.btn.ghost{color:var(--g)}.tabs button.on{color:var(--on)}
+input,select,textarea{color:var(--tx)}
+.thbtn{background:transparent;border:1px solid #ffffff80;color:#fff;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer}
+.thpop[hidden]{display:none!important}
+.thpop{position:fixed;top:56px;right:14px;z-index:50;width:min(460px,94vw);background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.25);padding:14px;display:grid;gap:12px}
+.thpop .sub{font-size:12px;color:var(--mut);margin-bottom:6px}
+.seg{display:flex;border:1px solid var(--bd);border-radius:9px;overflow:hidden}.seg button{flex:1;border:0;background:var(--card);color:var(--tx);padding:7px 4px;font:inherit;font-size:13px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--g);color:var(--on);font-weight:700}
+.thgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}.thgrid button{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:8px;padding:6px 8px;background:var(--card);color:var(--tx);cursor:pointer;font-size:13px;text-align:left}
+.thgrid button[aria-pressed="true"]{border-color:var(--g);box-shadow:inset 0 0 0 1px var(--g);font-weight:700}
+.thsw{display:inline-flex;width:34px;height:22px;border-radius:5px;overflow:hidden;border:1px solid rgba(128,128,128,.4);flex:none}.thsw i{flex:1}
+html[data-theme="dark"] #pastebox,html[data-theme="forest"] #pastebox,html[data-theme="navy"] #pastebox,html[data-theme="night"] #pastebox{background:var(--g2)!important}
 </style></head><body>
-<header><b>📷 페이스북카페24 사진 업로드</b><div class="hset">
-<select id="theme" title="테마"><option value="">🌿 초록</option><option value="t-blue">🌊 파랑</option><option value="t-purple">🍇 보라</option><option value="t-orange">🍊 주황</option><option value="t-dark">🌙 어둡게</option></select>
-<div class="fs" id="fs" title="글자 크기"><button data-z="0.9" style="font-size:11px">가</button><button data-z="1" style="font-size:13px">가</button><button data-z="1.15" style="font-size:15px">가</button><button data-z="1.3" style="font-size:17px">가</button></div>
-<button id="out" class="hidden">로그아웃</button></div></header>
+<header><b>📷 페이스북카페24 사진 업로드</b><div style="display:flex;gap:8px"><button class="thbtn" id="thBtn" title="글자 크기와 색상">🎨 Theme</button><button id="out" class="hidden">로그아웃</button></div></header>
+<div class="thpop" id="thPop" hidden>
+  <div style="display:flex;align-items:center"><b style="flex:1">Theme · 테마 <span class="sub">(이 컴퓨터에만)</span></b><button class="btn ghost sm" id="thX">✕</button></div>
+  <div><div class="sub">Text size · 글자 크기</div><div class="seg" id="thFs"><button data-fs="s">Small 작게</button><button data-fs="">Normal 보통</button><button data-fs="l">Large 크게</button><button data-fs="xl">X-Large 아주 크게</button></div></div>
+  <div><div class="sub">Colors · 색상</div><div class="thgrid" id="thGrid"></div></div>
+</div>
 <div class="w">
 <div class="tabs" id="tabs"><button data-t="c24" class="on">🛒 카페24 등록</button><button data-t="fb">📘 페이스북 사진함</button></div>
 <div id="draftView" class="hidden"></div>
@@ -323,13 +342,22 @@ $('#fbdirup').onclick=async()=>{ $('#fbdirup').disabled=true; let ok=0,bad=0;
   fbsay(`✅ ${ok}장 저장${bad?` · ❌ ${bad}장 실패`:''}`, !bad); fbLoad(); };
 </script><script>
 (function(){
-  var L={g:function(k){try{return localStorage.getItem(k)}catch(e){return null}},s:function(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-  var th=document.getElementById('theme'),fs=document.getElementById('fs'),w=document.querySelector('.w');
-  function setT(v){document.body.className=document.body.className.replace(/\bt-\w+/g,'').trim();if(v)document.body.classList.add(v);th.value=v||'';L.s('pm_theme',v||'');}
-  function setZ(z){w.style.zoom=z;[].forEach.call(fs.children,function(b){b.classList.toggle('on',b.getAttribute('data-z')==String(z))});L.s('pm_zoom',z);}
-  th.onchange=function(){setT(th.value)};
-  fs.onclick=function(e){var z=e.target.getAttribute&&e.target.getAttribute('data-z');if(z)setZ(z)};
-  setT(L.g('pm_theme')||'');setZ(L.g('pm_zoom')||'1');
+  var THEMES=[['','Auto 자동','#f3f5f2','#2f6b4f','#141916'],['light','Light 밝게','#f3f5f2','#2f6b4f','#ffffff'],['dark','Dark 어둡게','#141916','#6fbf94','#1c231f'],['mint','Mint 민트 (눈 편함)','#e8f3ec','#2e7d55','#f6fbf7'],['sage','Sage 세이지 녹색 (차분)','#e8ece2','#4f7535','#f5f7f1'],['eyecare','Eye-care 연두 (눈 보호색)','#c7e6cb','#2b6a47','#e2f2e4'],['forest','Forest 숲 녹색 (어둡게)','#0f1e18','#8fd3a8','#15281f'],['ocean','Ocean 블루','#eef3f8','#1f5f99','#ffffff'],['sepia','Warm 베이지 (눈 편함)','#f3eee2','#8a5a1f','#fbf8f0'],['lavender','Lavender 보라','#f5f3fa','#5b45a8','#ffffff'],['navy','Navy 남색 (어둡게)','#0f1623','#7cb3f0','#172131'],['night','Night 검정 (어둡게)','#0d0d0d','#f0b35a','#1a1a1a'],['contrast','High contrast 고대비','#ffffff','#00502f','#000000']];
+  function g(k){try{return localStorage.getItem(k)||''}catch(e){return ''}} function p(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  var pop=document.getElementById('thPop'),grid=document.getElementById('thGrid');
+  function apply(){var t=g('fbo-theme'),fs=g('fbo-fs'),h=document.documentElement;
+    if(t)h.setAttribute('data-theme',t);else h.removeAttribute('data-theme');
+    if(fs)h.setAttribute('data-fs',fs);else h.removeAttribute('data-fs');
+    [].forEach.call(document.querySelectorAll('#thFs [data-fs]'),function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-fs')===fs))});
+    grid.innerHTML=THEMES.map(function(x){return '<button data-th="'+x[0]+'" aria-pressed="'+(x[0]===t)+'"><span class="thsw"><i style="background:'+x[2]+'"></i><i style="background:'+x[3]+'"></i><i style="background:'+x[4]+'"></i></span>'+x[1]+'</button>'}).join('');
+  }
+  grid.onclick=function(e){var b=e.target.closest('[data-th]');if(b){p('fbo-theme',b.getAttribute('data-th'));apply();}};
+  document.getElementById('thFs').onclick=function(e){var b=e.target.closest('[data-fs]');if(b){p('fbo-fs',b.getAttribute('data-fs'));apply();}};
+  document.getElementById('thBtn').onclick=function(e){e.stopPropagation();pop.hidden=!pop.hidden};
+  document.getElementById('thX').onclick=function(){pop.hidden=true};
+  pop.addEventListener('click',function(e){e.stopPropagation()});
+  document.addEventListener('click',function(e){if(!pop.hidden&&!pop.contains(e.target))pop.hidden=true});
+  apply();
 })();
 </script>
 </body></html>
