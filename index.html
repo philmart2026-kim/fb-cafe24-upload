@@ -37,6 +37,18 @@ textarea{min-height:90px;resize:vertical}
 .ph{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}.ph .it{border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:#fff;font-size:12px}
 .ph img{width:100%;aspect-ratio:1;object-fit:cover;display:block}.ph .it div{padding:6px}.ph .it input{padding:5px 7px;font-size:12px;margin-top:4px}
 .cat h3{font-size:14px;margin:14px 0 8px}.x{float:right;border:0;background:none;color:var(--red);cursor:pointer;font-size:12px}
+@media (min-width:1100px){
+ .w{max-width:1480px}
+ .tabs{max-width:760px;margin-left:auto;margin-right:auto}
+ #fbView,#login,#draftView{max-width:900px;margin-left:auto;margin-right:auto}
+ .lr{display:grid;grid-template-columns:minmax(380px,5fr) 7fr;gap:16px;align-items:start}
+ .colL{position:sticky;top:12px}
+ .colL textarea{min-height:140px}
+ #drop{min-height:300px;display:flex;flex-direction:column;justify-content:center}
+ #drop img{max-width:320px;max-height:320px}
+ .colR #go{position:sticky;bottom:12px;box-shadow:0 6px 18px rgba(31,42,28,.25);padding:15px}
+ .mall{margin:8px 0}
+}
 </style></head><body>
 <header><b>📷 페이스북카페24 사진 업로드</b><button id="out" class="hidden">로그아웃</button></header>
 <div class="w">
@@ -77,6 +89,7 @@ textarea{min-height:90px;resize:vertical}
 
 <div id="main" class="hidden">
   <div id="msg"></div>
+  <div class="lr"><div class="colL">
   <div class="card">
     <h2>상품 정보</h2>
     <label>상품명 *</label><input id="pn" placeholder="예: Lucky Me Pancit Canton Kalamansi">
@@ -86,7 +99,7 @@ textarea{min-height:90px;resize:vertical}
     <label>대표 사진</label>
     <div id="drop"><div id="dropT">눌러서 사진 고르기 (또는 끌어다 놓기)</div><input id="pf" type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer"></div>
   </div>
-
+  </div><div class="colR">
   <div class="card">
     <h2>올릴 쇼핑몰</h2>
     <div id="malls"></div>
@@ -100,6 +113,7 @@ textarea{min-height:90px;resize:vertical}
 
   <button id="go" class="btn" style="width:100%">카페24에 등록하기</button>
   <div id="out2" style="margin-top:12px"></div>
+  </div></div>
 </div>
 </div>
 <script>
@@ -184,6 +198,19 @@ async function loadCats(mall){
 }
 
 // 사진: 긴 변 1200px로 줄여 JPEG로
+function mainTrimTxt(r){
+  const names={}; document.querySelectorAll(`.mall[data-m="${r.mall}"] .mn`).forEach(c=>names[c.value]=c.parentNode.textContent.trim());
+  return r.main_trim.map(t=>`메인 진열 [${esc(names[t.group]||('그룹 '+t.group))}] 칸이 꽉 차서 오래된 상품 ${t.removed}개를 진열에서 뺐어요 (상품은 그대로 있어요)`).join(' · ');
+}
+function mainErrTxt(r){
+  const names={}; document.querySelectorAll(`.mall[data-m="${r.mall}"] .mn`).forEach(c=>names[c.value]=c.parentNode.textContent.trim());
+  const full=[],other=[];
+  String(r.main_err).split(' | ').forEach(e=>{const g=(e.match(/mains\/(\d+)\//)||[])[1]; const n=names[g]||('그룹 '+g); (/maximum/i.test(e)?full:other).push(n);});
+  let t='';
+  if(full.length) t+=`메인 진열 [${full.map(esc).join(', ')}] 칸은 오래된 상품을 정리해도 자동으로 못 넣었어요. 카페24 관리자에서 직접 체크해 주세요.`;
+  if(other.length) t+=(t?' ':'')+`메인 진열 [${other.map(esc).join(', ')}]은 못 넣었어요. 카페24에서 체크해 주세요.`;
+  return t||'메인 진열은 못 넣었어요. 카페24에서 체크해 주세요.';
+}
 async function doPaste(v){
   let u; try{ u=new URL(v.trim()); }catch(e){ say('❌ 주소를 그대로 붙여 넣어 주세요.',false); return; }
   const code=u.searchParams.get('code'), st=u.searchParams.get('state')||'';
@@ -218,7 +245,7 @@ $('#go').onclick=async()=>{
   const j=await fn({action:'create',token,malls:sel,image:imgB64,product:{name,spec:$('#ps').value.trim(),supply_price:Number(($('#pc').value||'0').replace(/[^\d]/g,''))||0,description:$('#pd').value.replace(/\n/g,'<br>')}}).catch(e=>({ok:false,err:String(e)}));
   $('#go').disabled=false; $('#go').textContent='카페24에 등록하기';
   const lab=m=>(malls.find(x=>x.mall===m)||{}).label||m;
-  $('#out2').innerHTML= j.ok? j.results.map(r=>r.ok?`<div class="res ok">✅ ${esc(lab(r.mall))} 등록 완료 · 상품번호 ${r.product_no} ${r.url?`· <a href="${r.url}" target="_blank">보기</a>`:''}${r.img_err?`<br><span style="color:var(--red)">⚠️ 사진은 못 올렸어요. 카페24에서 직접 넣어 주세요.</span>`:''}${r.main_err?`<br><span style="color:var(--red)">⚠️ 메인 진열은 못 넣었어요. 카페24에서 체크해 주세요.</span>`:''}</div>`:`<div class="res bad">❌ ${esc(lab(r.mall))}: ${esc(r.err)}</div>`).join('') : `<div class="res bad">❌ ${esc(j.err||'오류')}</div>`;
+  $('#out2').innerHTML= j.ok? j.results.map(r=>r.ok?`<div class="res ok">✅ ${esc(lab(r.mall))} 등록 완료 · 상품번호 ${r.product_no} ${r.url?`· <a href="${r.url}" target="_blank">보기</a>`:''}${r.img_err?`<br><span style="color:var(--red)">⚠️ 사진은 못 올렸어요. 카페24에서 직접 넣어 주세요.</span>`:''}${r.main_err?`<br><span style="color:var(--red)">⚠️ ${mainErrTxt(r)}</span>`:''}${r.main_trim?`<br><span style="color:var(--mut)">🧹 ${mainTrimTxt(r)}</span>`:''}</div>`:`<div class="res bad">❌ ${esc(lab(r.mall))}: ${esc(r.err)}</div>`).join('') : `<div class="res bad">❌ ${esc(j.err||'오류')}</div>`;
   if(j.ok&&j.results.every(r=>r.ok)){ ['name','spec','price','cost'].forEach(k=>LS.del('pm-c24-pre-'+k)); }
 };
 
