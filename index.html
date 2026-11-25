@@ -302,11 +302,13 @@ $('#fbup').onclick=async()=>{ const cat=$('#fbcat').value.trim(); if(!cat){ aler
   fbPend=[]; $('#fbfiles').value=''; $('#fbprev').innerHTML=''; $('#fbup').textContent='사진함에 저장';
   fbsay(`✅ ${ok}장 저장${bad?` · ❌ ${bad}장 실패`:''} (${esc(cat)})`, !bad); fbLoad(); };
 async function fbLoad(){ const j=await fb({action:'list',page:'manila'}).catch(()=>({ok:false})); if(!j.ok){ fbsay('사진함을 불러오지 못했어요.',false); return; }
-  const g={}; j.photos.forEach(p=>(g[p.category]=g[p.category]||[]).push(p));
+  fbKeys=new Set(j.photos.map(p=>p.src_key).filter(Boolean)); const g={}; j.photos.forEach(p=>(g[p.category]=g[p.category]||[]).push(p)); fbCats=Object.keys(g).sort();
   $('#fbcats').innerHTML=Object.keys(g).map(c=>`<option value="${esc(c)}">`).join('');
-  $('#fbcount').textContent=`${j.photos.length}장 · ${Object.keys(g).length}개 카테고리`;
+  const nh=j.photos.filter(p=>p.hold).length; $('#fbcount').textContent=`${j.photos.length}장 · ${Object.keys(g).length}개 카테고리${nh?` · ⏸ 보류 ${nh}장`:''}`;
   if(j.settings){ $('#fbper').value=j.settings.per_post; $('#fbfoot').value=j.settings.footer||''; }
-  $('#fblist').innerHTML=Object.keys(g).sort().map(c=>`<div class="cat"><h3>${esc(c)} <small style="color:var(--mut);font-weight:400">${g[c].length}장</small></h3><div class="ph">${g[c].map(p=>`<div class="it"><img src="${p.url}" loading="lazy"><div><button class="x" data-rm="${p.id}">삭제</button>${esc(p.title||'')}${p.price?`<br>₩${Number(p.price).toLocaleString()}`:''}<br><span style="color:var(--mut)">${p.post_count?`${p.post_count}회 게시`:'아직 안 올림'}</span></div></div>`).join('')}</div></div>`).join('')||'<div class="note">아직 사진이 없어요.</div>';
+  $('#fblist').innerHTML=Object.keys(g).sort().map(c=>`<div class="cat"><h3>${esc(c)} <small style="color:var(--mut);font-weight:400">${g[c].length}장</small></h3><div class="ph">${g[c].map(p=>`<div class="it"${p.hold?' style="opacity:.45"':''}><img src="${p.url}" loading="lazy"><div><button class="x" data-rm="${p.id}">삭제</button> <button class="x" data-hold="${p.id}" data-h="${p.hold?0:1}" title="${p.hold?'다시 포스팅에 쓰기':'포스팅에 잠시 안 쓰기 (품절 등)'}">${p.hold?'▶ 다시 쓰기':'⏸ 보류'}</button><select class="x" data-rc="${p.id}" style="max-width:110px">${fbCats.map(x=>`<option${x===c?' selected':''}>${esc(x)}</option>`).join('')}</select><br>${esc(p.title||'')}${p.price?`<br>₩${Number(p.price).toLocaleString()}`:''}<br><span style="color:var(--mut)">${p.post_count?`${p.post_count}회 게시`:'아직 안 올림'}</span></div></div>`).join('')}</div></div>`).join('')||'<div class="note">아직 사진이 없어요.</div>';
+  document.querySelectorAll('[data-hold]').forEach(b=>b.onclick=async()=>{ b.disabled=true; await fb({action:'hold',id:b.dataset.hold,hold:b.dataset.h==='1'}); fbLoad(); });
+  document.querySelectorAll('[data-rc]').forEach(x=>x.onchange=async()=>{ await fb({action:'recat',id:x.dataset.rc,category:x.value}); fbLoad(); });
   document.querySelectorAll('[data-rm]').forEach(b=>b.onclick=async()=>{ if(!confirm('이 사진을 사진함에서 뺄까요?')) return; await fb({action:'remove',id:b.dataset.rm}); fbLoad(); }); }
 $('#fbsave').onclick=async()=>{ await fb({action:'settings',page:'manila',per_post:Number($('#fbper').value)||4,footer:$('#fbfoot').value}); fbsay('✅ 설정 저장',true); };
 $('#fbnow').onclick=async()=>{ $('#fbnow').disabled=true; const j=await fb({action:'prepare',page:'manila'}).catch(()=>({ok:false})); $('#fbnow').disabled=false;
@@ -328,18 +330,18 @@ async function showDraft(id,t){ $('#tabs').classList.add('hidden'); $('#main').c
     if(!r.ok){ $('#dok').disabled=$('#dno').disabled=false; } };
   $('#dok').onclick=()=>go(true); $('#dno').onclick=()=>go(false); }
 
-let fbDir=[];
-$('#fbdir').onchange=e=>{ fbDir=[...e.target.files].filter(f=>/^image\//.test(f.type)).map(f=>{ const parts=(f.webkitRelativePath||f.name).split('/'); return {f, cat:(parts.length>2?parts[parts.length-2]:parts[0]).trim()}; });
+let fbDir=[], fbKeys=new Set(), fbCats=[];
+$('#fbdir').onchange=e=>{ fbDir=[...e.target.files].filter(f=>/^image\//.test(f.type)).map(f=>{ const parts=(f.webkitRelativePath||f.name).split('/'); return {f, key:(f.webkitRelativePath||f.name)+'|'+f.size, cat:(parts.length>2?parts[parts.length-2]:parts[0]).trim()}; });
   const g={}; fbDir.forEach(x=>g[x.cat]=(g[x.cat]||0)+1);
   $('#fbdirinfo').innerHTML=fbDir.length? Object.entries(g).map(([c,n])=>`<b>${esc(c)}</b> ${n}장`).join(' · ') : '사진이 없어요.';
-  $('#fbdirup').disabled=!fbDir.length; $('#fbdirup').textContent=`폴더 사진 ${fbDir.length}장 모두 저장`; };
-$('#fbdirup').onclick=async()=>{ $('#fbdirup').disabled=true; let ok=0,bad=0;
-  for(let i=0;i<fbDir.length;i++){ $('#fbdirup').textContent=`저장 중… ${i+1}/${fbDir.length}`;
-    const name=fbDir[i].f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim(); const m=name.match(/(\d[\d,]{2,})\s*(원|won)?$/i);
-    const d=await shrink(fbDir[i].f);
-    const j=await fb({action:'upload',page:'manila',category:fbDir[i].cat,title:m?name.slice(0,m.index).trim():'',price:m?m[1].replace(/,/g,''):'',image:d.split(',')[1]}).catch(()=>({ok:false})); j.ok?ok++:bad++; }
+  const nw=fbDir.filter(x=>!fbKeys.has(x.key)).length; $('#fbdirup').disabled=!nw; $('#fbdirup').textContent= nw? `새 사진 ${nw}장 저장${fbDir.length-nw?` (이미 있는 ${fbDir.length-nw}장 제외)`:''}` : '새 사진이 없어요 (모두 이미 저장됨)'; };
+$('#fbdirup').onclick=async()=>{ $('#fbdirup').disabled=true; let ok=0,bad=0,dup=0,done=0; const todo=fbDir.filter(x=>!fbKeys.has(x.key)); dup=fbDir.length-todo.length;
+  const one=async x=>{ const name=x.f.name.replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').trim(); const m=name.match(/(\d[\d,]{2,})\s*(원|won)?$/i);
+    try{ const d=await shrink(x.f); const j=await fb({action:'upload',page:'manila',category:x.cat,src_key:x.key,title:m?name.slice(0,m.index).trim():'',price:m?m[1].replace(/,/g,''):'',image:d.split(',')[1]}); j.ok?(j.dup?dup++:ok++):bad++; }catch(e){ bad++; }
+    done++; $('#fbdirup').textContent=`저장 중… ${done}/${todo.length}${dup?` (이미 있는 ${dup}장 건너뜀)`:''}`; };
+  let k=0; await Promise.all([0,1,2].map(async()=>{ while(k<todo.length){ await one(todo[k++]); } }));
   fbDir=[]; $('#fbdir').value=''; $('#fbdirinfo').innerHTML=''; $('#fbdirup').textContent='폴더 사진 모두 저장';
-  fbsay(`✅ ${ok}장 저장${bad?` · ❌ ${bad}장 실패`:''}`, !bad); fbLoad(); };
+  fbsay(`✅ ${ok}장 저장${dup?` · 이미 있는 ${dup}장 건너뜀`:''}${bad?` · ❌ ${bad}장 실패 (다시 누르면 실패한 것만 올려요)`:''}`, !bad); fbLoad(); };
 </script><script>
 (function(){
   var THEMES=[['','Auto 자동','#f3f5f2','#2f6b4f','#141916'],['light','Light 밝게','#f3f5f2','#2f6b4f','#ffffff'],['dark','Dark 어둡게','#141916','#6fbf94','#1c231f'],['mint','Mint 민트 (눈 편함)','#e8f3ec','#2e7d55','#f6fbf7'],['sage','Sage 세이지 녹색 (차분)','#e8ece2','#4f7535','#f5f7f1'],['eyecare','Eye-care 연두 (눈 보호색)','#c7e6cb','#2b6a47','#e2f2e4'],['forest','Forest 숲 녹색 (어둡게)','#0f1e18','#8fd3a8','#15281f'],['ocean','Ocean 블루','#eef3f8','#1f5f99','#ffffff'],['sepia','Warm 베이지 (눈 편함)','#f3eee2','#8a5a1f','#fbf8f0'],['lavender','Lavender 보라','#f5f3fa','#5b45a8','#ffffff'],['navy','Navy 남색 (어둡게)','#0f1623','#7cb3f0','#172131'],['night','Night 검정 (어둡게)','#0d0d0d','#f0b35a','#1a1a1a'],['contrast','High contrast 고대비','#ffffff','#00502f','#000000']];
