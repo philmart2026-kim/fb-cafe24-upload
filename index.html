@@ -319,31 +319,50 @@ $('#fbnow').onclick=async()=>{ $('#fbnow').disabled=true; const j=await fb({acti
 const COV={ 'new products':['NEW ARRIVALS','#e8590c'], 'sale':['SALE','#d6336c'], 'gulay':['FRESH GULAY','#2b8a3e'], 'tinapay':['FRESH TINAPAY','#b0632a'], 'frozen goods':['FROZEN FAVES','#1c7ed6'], 'snacks':['PINOY SNACKS','#f08c00'], 'beauty set':['BEAUTY SETS','#c2255c'], 'vitamins':['VITAMINS','#2f9e44'], 'slimming':['SLIM & WELLNESS','#7048e8'], 'soap':['BEAUTY SOAPS','#e64980'], 'noodles':['PANCIT & NOODLES','#e67700'], 'canned goods':['CANNED GOODS','#c92a2a'] };
 const loadImg=u=>new Promise((ok,no)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>ok(i); i.onerror=no; i.src=u+(u.includes('?')?'&':'?')+'cv=1'; });
 async function makeCover(urls,cat){ const W=1080, g=6, n=3, tw=(W-g*(n+1))/n; const c=document.createElement('canvas'); c.width=c.height=W; const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,W,W);
-  const imgs=(await Promise.all(urls.slice(0,9).map(u=>loadImg(u).catch(()=>null)))).filter(Boolean); if(!imgs.length) throw new Error('사진을 불러오지 못했어요');
-  for(let k=0;k<9;k++){ const im=imgs[k%imgs.length], col=k%3, row=Math.floor(k/3), dx=g+col*(tw+g), dy=g+row*(tw+g), s=Math.max(tw/im.width,tw/im.height), sw=tw/s, sh=tw/s; x.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,dx,dy,tw,tw); }
-  const [title,color]=COV[String(cat).toLowerCase()]||[String(cat).toUpperCase(),'#343a40']; const bw=900, bh=250, bx=(W-bw)/2, by=(W-bh)/2;
-  x.save(); x.shadowColor='rgba(0,0,0,.35)'; x.shadowBlur=24; x.fillStyle=color; x.globalAlpha=.94; x.beginPath(); x.roundRect(bx,by,bw,bh,28); x.fill(); x.restore();
-  x.fillStyle='#fff'; x.textAlign='center'; x.textBaseline='middle'; let fs=104; x.font=`900 ${fs}px "Arial Black",Arial,sans-serif`; while(x.measureText(title).width>bw-60&&fs>40){ fs-=4; x.font=`900 ${fs}px "Arial Black",Arial,sans-serif`; } x.fillText(title,W/2,by+bh*0.42);
-  x.font='700 38px Arial,sans-serif'; x.fillText('Manila Mart · manilamart.net',W/2,by+bh*0.8);
+  const imgs=(await Promise.all(urls.slice(0,8).map(u=>loadImg(u).catch(()=>null)))).filter(Boolean); if(!imgs.length) throw new Error('사진을 불러오지 못했어요');
+  const [title,color]=COV[String(cat).toLowerCase()]||[String(cat).toUpperCase(),'#343a40']; let pi=0;
+  for(let k=0;k<9;k++){ const col=k%3, row=Math.floor(k/3), dx=g+col*(tw+g), dy=g+row*(tw+g);
+    if(k===4){ // 가운데 칸 = 제목 (사진을 가리지 않음)
+      x.fillStyle=color; x.fillRect(dx,dy,tw,tw); x.fillStyle='#fff'; x.textAlign='center'; x.textBaseline='middle';
+      const words=title.split(' '); let lines=[title], fs=96; const fit=()=>{ x.font=`900 ${fs}px "Arial Black",Arial,sans-serif`; return lines.every(l=>x.measureText(l).width<=tw-36); };
+      if(words.length>1){ const m=Math.ceil(words.length/2); lines=[words.slice(0,m).join(' '),words.slice(m).join(' ')]; if(words.length===3 && words[1]==='&') lines=[words[0]+' &',words[2]]; }
+      while(!fit() && fs>34) fs-=2;
+      const lh=fs*1.08, top=dy+tw*0.42-(lines.length-1)*lh/2; lines.forEach((l,i)=>x.fillText(l,dx+tw/2,top+i*lh));
+      x.fillStyle='rgba(255,255,255,.92)'; x.fillRect(dx+tw*0.2,dy+tw*0.72,tw*0.6,3);
+      x.fillStyle='#fff'; x.font='700 30px Arial,sans-serif'; x.fillText('Manila Mart',dx+tw/2,dy+tw*0.81); x.font='600 26px Arial,sans-serif'; x.fillText('manilamart.net',dx+tw/2,dy+tw*0.91);
+      continue; }
+    const im=imgs[pi++%imgs.length], sc=Math.max(tw/im.width,tw/im.height), sw=tw/sc, sh=tw/sc; x.drawImage(im,(im.width-sw)/2,(im.height-sh)/2,sw,sh,dx,dy,tw,tw); }
   return c.toDataURL('image/jpeg',0.88); }
 async function showDraft(id,t){ $('#tabs').classList.add('hidden'); $('#main').classList.add('hidden'); const v=$('#draftView'); v.classList.remove('hidden'); v.innerHTML='<div class="card">불러오는 중…</div>';
   const j=await fb({action:'draft',id,t}).catch(()=>({ok:false})); if(!j.ok){ v.innerHTML='<div class="res bad">게시 미리보기를 찾을 수 없어요.</div>'; return; }
   const d=j.draft, done=d.status!=='pending';
   v.innerHTML=`<div class="card"><h2>📘 Manila Mart 게시 미리보기 · ${esc(d.category)}</h2>
    ${done?`<div class="res ${d.status==='posted'?'ok':'bad'}">이미 처리됐어요: ${d.status==='posted'?'게시 완료':d.status==='skipped'?'건너뜀':'오류'}</div>`:''}
-   <div class="note">빼고 싶은 사진은 체크를 해제하세요.${d.cover==='auto'&&!done?' 첫 장은 사진들로 자동으로 만든 <b>표지</b>예요.':''}</div><div class="ph" style="margin-top:8px">${d.cover==='auto'&&!done?`<div class="it" id="covBox" style="grid-column:span 2;border:2px solid var(--ac,#2b8a3e)"><img id="covImg" alt="자동 표지" style="aspect-ratio:1;background:#eee"><div><label style="display:inline"><input type="checkbox" id="covOn" checked style="width:18px;height:18px"> 🖼 자동 표지 넣기</label> <button type="button" class="x" id="covRe" style="float:none">🔀 다시 만들기</button></div></div>`:''}${d.urls.map(u=>`<label class="it" style="display:block;cursor:pointer"><img src="${u}"><div><input type="checkbox" class="du" value="${u}" checked ${done?'disabled':''} style="width:18px;height:18px"> 올리기</div></label>`).join('')}</div>
+   ${d.cover==='auto'&&!done?`<div id="covBox" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start;border:2px solid var(--ac,#2b8a3e);border-radius:12px;padding:10px;margin-top:8px"><img id="covImg" alt="자동 표지" style="width:min(320px,100%);aspect-ratio:1;background:#eee;border-radius:8px"><div style="flex:1;min-width:200px"><b>🖼 표지 (게시물 첫 장)</b><div class="note" style="margin:6px 0">가운데 칸은 제목, 둘레 8칸은 사진이에요.<br>아래 사진에서 <b>☆ 표지</b>를 누르면 그 사진이 표지에 들어가요 (누른 순서대로, 최대 8장). 고르지 않은 칸은 자동으로 채워요.</div><label style="display:inline"><input type="checkbox" id="covOn" checked style="width:18px;height:18px"> 표지 넣기</label> <button type="button" class="x" id="covRe" style="float:none">🔀 나머지 칸 다시 채우기</button> <span id="covN" class="sub"></span></div></div>`:''}
+   <div class="note" style="margin-top:10px">${done?'':'<b>순서 바꾸기</b>: 사진을 끌어다 놓거나 ◀ ▶ 를 누르세요. 번호 순서대로 게시돼요. 빼고 싶은 사진은 체크를 해제하세요.'}</div><div class="ph" id="dgrid" style="margin-top:8px"></div>
    <label>게시글</label><textarea id="dmsg" style="min-height:150px" ${done?'disabled':''}>${esc(d.message)}</textarea>
    ${done?'':`<div style="display:flex;gap:10px;margin-top:12px"><button id="dok" class="btn" style="flex:2">✅ 페이스북에 올리기</button><button id="dno" class="btn ghost" style="flex:1">건너뛰기</button></div>`}
    <div id="dres" style="margin-top:10px"></div></div>`;
-  if(done) return;
-  let covData='', order=d.urls.slice();
-  const draw=async()=>{ const im=$('#covImg'); if(!im) return; im.style.opacity=.4; try{ covData=await makeCover(order,d.category); im.src=covData; }catch(e){ covData=''; $('#covBox').innerHTML='<div class="note">표지를 만들지 못했어요 ('+esc(e.message||e)+')</div>'; } im.style.opacity=1; };
-  if($('#covImg')){ draw(); $('#covRe').onclick=()=>{ order=order.slice().sort(()=>Math.random()-.5); draw(); }; }
+  let covData='', order=d.urls.slice(), fill=d.urls.slice(), cov=[], off=new Set(), tm=0;
+  const covUrls=()=>[...cov.filter(u=>!off.has(u)), ...fill.filter(u=>!cov.includes(u)&&!off.has(u))].slice(0,8);
+  const draw=async()=>{ const im=$('#covImg'); if(!im) return; im.style.opacity=.4; try{ covData=await makeCover(covUrls(),d.category); im.src=covData; }catch(e){ covData=''; } im.style.opacity=1; if($('#covN')) $('#covN').textContent=cov.length?`직접 고른 사진 ${cov.length}장`:''; };
+  const redraw=()=>{ clearTimeout(tm); tm=setTimeout(draw,250); };
+  const paint=()=>{ const hasCov=!!$('#covImg'); $('#dgrid').innerHTML=order.map((u,i)=>{ const ci=cov.indexOf(u), on=!off.has(u);
+      return `<div class="it" draggable="${done?'false':'true'}" data-i="${i}" style="${on?'':'opacity:.4;'}${ci>=0?'outline:3px solid #f08c00;':''}"><img src="${u}" draggable="false"><div><b>${i+1}</b> <label style="display:inline;cursor:pointer"><input type="checkbox" class="du" data-i="${i}" ${on?'checked':''} ${done?'disabled':''} style="width:18px;height:18px"> 올리기</label>${done?'':`<div style="padding:4px 0 0;display:flex;gap:4px;flex-wrap:wrap"><button type="button" class="x" style="float:none" data-mv="-1" data-i="${i}">◀</button><button type="button" class="x" style="float:none" data-mv="1" data-i="${i}">▶</button><button type="button" class="x" style="float:none" data-mv="top" data-i="${i}">⏮ 맨 앞</button>${hasCov?`<button type="button" class="x" style="float:none" data-cv="${i}">${ci>=0?'★ 표지 '+(ci+1):'☆ 표지'}</button>`:''}</div>`}</div></div>`; }).join('');
+    if(done) return; const G=$('#dgrid');
+    G.querySelectorAll('.du').forEach(c=>c.onchange=()=>{ const u=order[+c.dataset.i]; c.checked?off.delete(u):off.add(u); paint(); redraw(); });
+    G.querySelectorAll('[data-mv]').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, u=order[i]; order.splice(i,1); const j=b.dataset.mv==='top'?0:Math.max(0,Math.min(order.length,i+Number(b.dataset.mv))); order.splice(j,0,u); paint(); });
+    G.querySelectorAll('[data-cv]').forEach(b=>b.onclick=()=>{ const u=order[+b.dataset.cv], k=cov.indexOf(u); if(k>=0) cov.splice(k,1); else { if(cov.length>=8){ alert('표지 사진은 8장까지예요.'); return; } cov.push(u); } paint(); redraw(); });
+    G.querySelectorAll('.it').forEach(el=>{ el.ondragstart=e=>{ e.dataTransfer.setData('text/plain',el.dataset.i); e.dataTransfer.effectAllowed='move'; }; el.ondragover=e=>{ e.preventDefault(); el.style.boxShadow='-4px 0 0 #1c7ed6'; }; el.ondragleave=()=>{ el.style.boxShadow=''; };
+      el.ondrop=e=>{ e.preventDefault(); const from=+e.dataTransfer.getData('text/plain'), to=+el.dataset.i; if(isNaN(from)||from===to) return; const u=order.splice(from,1)[0]; order.splice(to,0,u); paint(); }; }); };
+  paint(); if(done) return;
+  if($('#covImg')){ draw(); $('#covRe').onclick=()=>{ fill=fill.slice().sort(()=>Math.random()-.5); draw(); }; }
   const go=async ok=>{ $('#dok').disabled=$('#dno').disabled=true; $('#dres').innerHTML='<div class="res ok">처리 중…</div>';
-    let urls=[...document.querySelectorAll('.du:checked')].map(c=>c.value);
-    if(ok && covData && $('#covOn') && $('#covOn').checked){ const cu=await fb({action:'cover_upload',id,t,image:covData.split(',')[1]}).catch(()=>({ok:false})); if(cu.ok) urls=[cu.url,...urls]; }
+    let urls=order.filter(u=>!off.has(u));
+    if(ok && !urls.length){ $('#dres').innerHTML='<div class="res bad">올릴 사진이 없어요.</div>'; $('#dok').disabled=$('#dno').disabled=false; return; }
+    if(ok && $('#covOn') && $('#covOn').checked){ clearTimeout(tm); await draw(); if(covData){ const cu=await fb({action:'cover_upload',id,t,image:covData.split(',')[1]}).catch(()=>({ok:false})); if(cu.ok) urls=[cu.url,...urls]; } }
     const r=await fb({action:'decide',id,t,ok,urls,message:$('#dmsg').value}).catch(e=>({ok:false,err:String(e)}));
-    $('#dres').innerHTML= r.ok? `<div class="res ok">${r.status==='posted'?'✅ Manila Mart에 올렸어요!':'건너뛰었어요. 다음 순서에 다른 카테고리가 올라와요.'}</div>` : `<div class="res bad">❌ ${esc(r.err||'오류')}</div>`;
+    $('#dres').innerHTML= r.ok? `<div class="res ok">${r.status==='posted'?'✅ 게시 요청을 보냈어요. 1~2분 뒤 Manila Mart 페이지에 올라와요.':'건너뛰었어요. 다음 순서에 다른 카테고리가 올라와요.'}</div>` : `<div class="res bad">❌ ${esc(r.err||'오류')}</div>`;
     if(!r.ok){ $('#dok').disabled=$('#dno').disabled=false; } };
   $('#dok').onclick=()=>go(true); $('#dno').onclick=()=>go(false); }
 
