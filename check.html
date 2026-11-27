@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>카페24 판매중지 점검</title>
+<style>
+:root{--bg:#f3f6ef;--card:#fff;--ink:#1c2b22;--mut:#6b776f;--bd:#d8dfd5;--ac:#2b5e3f;--red:#c92a2a;--amber:#e8590c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Malgun Gothic",sans-serif}
+header{background:var(--ac);color:#fff;padding:12px 16px;font-weight:700}
+main{max-width:720px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:20px}
+.bar{height:8px;background:var(--bd);border-radius:8px;overflow:hidden;margin:8px 0 14px}.bar i{display:block;height:100%;background:var(--ac)}
+.lab{font-size:13px;color:var(--mut);font-weight:700;margin-top:14px}
+.nm{font-size:21px;font-weight:700;line-height:1.35;word-break:break-word;margin-top:2px}
+.nm mark{background:#ffe066;border-radius:4px;padding:0 2px}
+.box{border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-top:6px}
+.box.c{border-left:6px solid #1c7ed6}.box.e{border-left:6px solid var(--red)}
+.hint{margin-top:14px;padding:10px 12px;border-radius:10px;background:#fff4e6;color:#7a4a00;font-size:15px}
+.meta{font-size:14px;color:var(--mut);margin-top:6px}.meta a{color:#1c7ed6;margin-right:10px;white-space:nowrap}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+button{font:inherit;font-weight:700;border:0;border-radius:12px;padding:16px 10px;cursor:pointer}
+.same{background:var(--red);color:#fff}.diff{background:var(--ac);color:#fff}
+.later,.back{background:#e9ecef;color:#343a40;padding:11px}
+.small{font-size:13px;font-weight:400;display:block;opacity:.9}
+.top{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--mut)}.top b{color:var(--ink)}
+.done li{margin:4px 0}.tag{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700;color:#fff}
+.t-same{background:var(--red)}.t-diff{background:var(--ac)}.t-later{background:#868e96}
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:10px}td{border-top:1px solid var(--bd);padding:6px 4px;vertical-align:top}
+.err{color:var(--red);font-weight:700;margin-top:10px}
+</style></head><body>
+<header>🔎 카페24 판매중지 점검 — 하나씩 확인하기</header>
+<main><div id="app" class="card">불러오는 중…</div></main>
+<script>
+const SUPA='https://pebygdhmzxhoxooddcjz.supabase.co', KEY='sb_publishable_NhUf1QKCMxH81wGqOf2AMg_0ATjywjK';
+const H={'Content-Type':'application/json',apikey:KEY,Authorization:'Bearer '+KEY};
+const MALL={hnlmall:'Philippine Mart',muramart:'Manila Mart',pmtraders:'Save Mart'};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const won=n=>n==null?'':'₩'+Number(n).toLocaleString();
+let rows=[], idx=0, list=false, busy=false;
+const core=s=>s.replace(/^\[[^\]]*\]\s*/,'');
+const toks=s=>core(s).toLowerCase().replace(/[^a-z0-9가-힣.]+/g,' ').trim().split(/\s+/).filter(Boolean);
+// 서로 다른 부분 노란색
+function hl(a,b){ const other=new Set(toks(b)), joined=toks(b).join('');
+  return a.split(/(\s+)/).map(w=>{ if(!w.trim()) return w; const k=w.toLowerCase().replace(/[^a-z0-9가-힣.]+/g,''); if(!k) return esc(w);
+    return (other.has(k)||joined.includes(k)&&k.length>3)? esc(w) : '<mark>'+esc(w)+'</mark>'; }).join(''); }
+const nums=s=>(core(s).toLowerCase().replace(/\s+/g,'').match(/\d+(?:\.\d+)?(?:kg|g|ml|liter|l|pcs|pc|p|t|s|bowls)?/g)||[]).sort().join(',');
+function guess(r){ if(/^\[/.test(r.erp_name)) return 'ERP에서는 <b>세일 상품</b>이 판매중지예요. 카페24의 일반 상품은 다른 상품일 수 있어요.';
+  if(/^\[/.test(r.c24_name)) return '카페24 쪽이 세일 상품이에요.';
+  const a=nums(r.c24_name), b=nums(r.erp_name); if(a&&b&&a!==b) return '<b>용량·수량이 달라요.</b> 다른 상품일 수 있어요.';
+  return '표기만 달라 보여요. <b>같은 상품일 가능성이 높아요.</b>'; }
+async function load(){ try{ const r=await fetch(SUPA+'/rest/v1/c24_review?select=*&order=id',{headers:H}); rows=await r.json(); if(!Array.isArray(rows)) throw 0;
+    idx=rows.findIndex(x=>!x.decision); if(idx<0){ idx=0; list=true; } draw(); }catch(e){ app.innerHTML='<div class="err">목록을 불러오지 못했어요. 새로고침해 보세요.</div>'; } }
+async function save(r,d){ const body={decision:d,decided_at:d?new Date().toISOString():null};
+  const res=await fetch(SUPA+'/rest/v1/c24_review?id=eq.'+r.id,{method:'PATCH',headers:{...H,Prefer:'return=representation'},body:JSON.stringify(body)});
+  const j=await res.json().catch(()=>null); if(!res.ok||!Array.isArray(j)||!j.length) throw new Error('save'); r.decision=d; }
+async function pick(d){ if(busy) return; busy=true; const r=rows[idx];
+  try{ await save(r,d); let n=rows.findIndex((x,i)=>i>idx&&!x.decision); if(n<0) n=rows.findIndex(x=>!x.decision); if(n<0){ list=true; } else idx=n; busy=false; draw(); }
+  catch(e){ busy=false; draw('저장하지 못했어요. 다시 눌러 주세요.'); } }
+function cnt(){ const c={same:0,diff:0,later:0,none:0}; rows.forEach(r=>c[r.decision||'none']++); return c; }
+function draw(err){ const c=cnt(), done=rows.length-c.none;
+  const head=`<div class="top"><span><b>${done}</b> / ${rows.length} 확인</span><span style="flex:1"></span><span class="tag t-same">같음 ${c.same}</span> <span class="tag t-diff">다름 ${c.diff}</span> <span class="tag t-later">나중 ${c.later}</span></div><div class="bar"><i style="width:${rows.length?done/rows.length*100:0}%"></i></div>`;
+  if(list||!rows.length){ app.innerHTML=head+`<h2 style="margin:6px 0">${c.none?'확인한 목록':'모두 확인했어요 🎉'}</h2>
+    <div class="meta">${c.none?`아직 ${c.none}개 남았어요.`:'Claude에게 "점검 끝났어"라고 알려 주세요. "같은 상품"으로 고른 것만 카페24에서 숨겨요.'} 고치려면 줄을 누르세요.</div>
+    ${c.none?'<div class="btns"><button class="diff" id="go" style="grid-column:span 2">이어서 확인하기</button></div>':''}
+    <table>${rows.map((r,i)=>r.decision?`<tr data-i="${i}" style="cursor:pointer"><td><span class="tag t-${r.decision}">${r.decision==='same'?'같음':r.decision==='diff'?'다름':'나중'}</span></td><td>${esc(r.c24_name)}<div class="meta">↔ ${esc(r.erp_name)}</div></td></tr>`:'').join('')}</table>`;
+    const g=document.getElementById('go'); if(g) g.onclick=()=>{ list=false; idx=rows.findIndex(x=>!x.decision); draw(); };
+    app.querySelectorAll('tr[data-i]').forEach(t=>t.onclick=()=>{ idx=+t.dataset.i; list=false; draw(); }); return; }
+  const r=rows[idx];
+  app.innerHTML=head+`
+    <div class="lab">🛒 카페24에 지금 노출 중</div>
+    <div class="box c"><div class="nm">${hl(r.c24_name,r.erp_name)}</div>
+      <div class="meta">${r.price?won(r.price)+' · ':''}${(r.malls||[]).map(m=>`<a href="https://${m.mall}.cafe24.com/product/detail.html?product_no=${m.no}" target="_blank" rel="noopener">${MALL[m.mall]||m.mall} 상품 보기 ↗</a>`).join('')}</div></div>
+    <div class="lab">⛔ ERP에서 판매중지</div>
+    <div class="box e"><div class="nm">${hl(r.erp_name,r.c24_name)}</div></div>
+    <div class="hint">💡 ${guess(r)} <span style="opacity:.7">(이름 비슷한 정도 ${r.sim}%)</span></div>
+    ${r.decision?`<div class="meta">지금 선택: <span class="tag t-${r.decision}">${r.decision==='same'?'같은 상품':r.decision==='diff'?'다른 상품':'나중에'}</span></div>`:''}
+    <div class="btns">
+      <button class="same" id="bs">같은 상품이에요<span class="small">카페24에서 숨기기 · 키보드 ←</span></button>
+      <button class="diff" id="bd">다른 상품이에요<span class="small">그대로 두기 · 키보드 →</span></button>
+      <button class="back" id="bb">◀ 이전</button><button class="later" id="bl">나중에 볼게요 · ↓</button>
+    </div>
+    <div class="btns" style="margin-top:10px"><button class="later" id="bx" style="grid-column:span 2;font-weight:400">📋 확인한 목록 보기</button></div>
+    ${err?`<div class="err">${err}</div>`:''}`;
+  bs.onclick=()=>pick('same'); bd.onclick=()=>pick('diff'); bl.onclick=()=>pick('later'); bb.onclick=()=>{ if(idx>0){ idx--; draw(); } }; bx.onclick=()=>{ list=true; draw(); }; }
+document.addEventListener('keydown',e=>{ if(list||e.target.tagName==='INPUT') return; if(e.key==='ArrowLeft') pick('same'); else if(e.key==='ArrowRight') pick('diff'); else if(e.key==='ArrowDown'){ e.preventDefault(); pick('later'); } else if(e.key==='ArrowUp'||e.key==='Backspace'){ e.preventDefault(); if(idx>0){ idx--; draw(); } } });
+const app=document.getElementById('app'); load();
+</script></body></html>
