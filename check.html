@@ -42,7 +42,8 @@ function hl(a,b){ const other=new Set(toks(b)), joined=toks(b).join('');
   return a.split(/(\s+)/).map(w=>{ if(!w.trim()) return w; const k=w.toLowerCase().replace(/[^a-z0-9가-힣.]+/g,''); if(!k) return esc(w);
     return (other.has(k)||joined.includes(k)&&k.length>3)? esc(w) : '<mark>'+esc(w)+'</mark>'; }).join(''); }
 const nums=s=>(core(s).toLowerCase().replace(/\s+/g,'').match(/\d+(?:\.\d+)?(?:kg|g|ml|liter|l|pcs|pc|p|t|s|bowls)?/g)||[]).sort().join(',');
-function guess(r){ if(/^\[/.test(r.erp_name)) return 'ERP에서는 <b>세일 상품</b>이 판매중지예요. 카페24의 일반 상품은 다른 상품일 수 있어요.';
+function guess(r){ if(/^\[/.test(r.erp_name)&&/^\[/.test(r.c24_name)) return '둘 다 <b>세일 상품</b>이에요. 같은 세일인지(수량·유통기한) 봐 주세요.';
+  if(/^\[/.test(r.erp_name)) return 'ERP에서는 <b>세일 상품</b>이 판매중지예요. 카페24의 일반 상품은 다른 상품일 수 있어요.';
   if(/^\[/.test(r.c24_name)) return '카페24 쪽이 세일 상품이에요.';
   const a=nums(r.c24_name), b=nums(r.erp_name); if(a&&b&&a!==b) return '<b>용량·수량이 달라요.</b> 다른 상품일 수 있어요.';
   return '표기만 달라 보여요. <b>같은 상품일 가능성이 높아요.</b>'; }
