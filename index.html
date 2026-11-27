@@ -129,6 +129,8 @@ html[data-theme="dark"] #pastebox,html[data-theme="forest"] #pastebox,html[data-
     <label>상품명 *</label><input id="pn" placeholder="예: Lucky Me Pancit Canton Kalamansi">
     <div class="row"><div><label>규격 / 요약 설명</label><input id="ps" placeholder="예: 60g x 10pcs"></div>
     <div><label>공급가(원가)</label><input id="pc" inputmode="numeric" placeholder="0"></div></div>
+    <label>연결할 ERP 상품명 <span style="font-weight:400;color:var(--mut)">— 맛·종류가 여러 개면 한 줄에 하나씩. 카페24에는 상품 1개로 올라가고, ERP 상품 목록에서만 나뉘어요.</span></label><textarea id="pe" rows="3" placeholder="예:&#10;Dujosoo crispy chicken strips spicy 30g&#10;Dujosoo crispy chicken strips cumin 30g&#10;Dujosoo chicken breast crisps mustard 30g"></textarea>
+    <div class="note" id="peNote" style="font-size:13px;color:var(--mut)">적어 두면 ERP에서 이 상품들이 <b>모두 판매중지</b>일 때만 카페24에서 숨겨지고, 하나라도 다시 팔면 다시 보여요. 비워 두면 상품명이 같은 ERP 상품과 연결돼요.</div>
     <label>상세 설명</label><textarea id="pd" placeholder="상품 설명 (선택)"></textarea>
     <label>대표 사진</label>
     <div id="drop"><div id="dropT">눌러서 사진 고르기 (또는 끌어다 놓기)</div><input id="pf" type="file" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer"></div>
@@ -166,7 +168,7 @@ const say=(t,ok)=>{ const h=t?`<div class="res ${ok?'ok':'bad'}">${t}</div>`:'';
 (async()=>{
   const q=new URLSearchParams(location.search), code=q.get('code'), st=q.get('state')||'';
   // ERP에서 넘어온 값 기억
-  ['name','spec','price','cost'].forEach(k=>{ if(q.get(k)!=null) LS.set('pm-c24-pre-'+k,q.get(k)); });
+  ['name','spec','price','cost','erp'].forEach(k=>{ if(q.get(k)!=null) LS.set('pm-c24-pre-'+k,q.get(k)); });
   if(code&&st.startsWith('c24_')){
     const mall=st.slice(4); history.replaceState(null,'',location.pathname);
     const j=await fn({action:'exchange',mall,code,redirect_uri:RED}).catch(e=>({ok:false,err:String(e)}));
@@ -190,6 +192,7 @@ async function start(){
   const f=LS.get('pm-c24-flash'); if(f){ say(f,!f.startsWith('❌')); LS.del('pm-c24-flash'); }
   const pre=k=>LS.get('pm-c24-pre-'+k);
   if(pre('name')!=null){ $('#pn').value=pre('name'); $('#ps').value=pre('spec')||''; $('#pc').value=pre('cost')||''; }
+  if(pre('erp')) $('#pe').value=String(pre('erp')).split('|').map(x=>x.trim()).filter(Boolean).join('\n');
   const m=await fn({action:'malls'}); malls=m.malls||[];
   const order=['hnlmall','muramart','pmtraders']; malls.sort((a,b)=>order.indexOf(a.mall)-order.indexOf(b.mall));
   $('#malls').innerHTML=malls.map(x=>{
@@ -280,7 +283,13 @@ $('#go').onclick=async()=>{
   $('#go').disabled=false; $('#go').textContent='카페24에 등록하기';
   const lab=m=>(malls.find(x=>x.mall===m)||{}).label||m;
   $('#out2').innerHTML= j.ok? j.results.map(r=>r.ok?`<div class="res ok">✅ ${esc(lab(r.mall))} 등록 완료 · 상품번호 ${r.product_no} ${r.url?`· <a href="${r.url}" target="_blank">보기</a>`:''}${r.img_err?`<br><span style="color:var(--red)">⚠️ 사진은 못 올렸어요. 카페24에서 직접 넣어 주세요.</span>`:''}${r.main_err?`<br><span style="color:var(--red)">⚠️ ${mainErrTxt(r)}</span>`:''}${r.main_trim?`<br><span style="color:var(--mut)">🧹 ${mainTrimTxt(r)}</span>`:''}</div>`:`<div class="res bad">❌ ${esc(lab(r.mall))}: ${esc(r.err)}</div>`).join('') : `<div class="res bad">❌ ${esc(j.err||'오류')}</div>`;
-  if(j.ok&&j.results.every(r=>r.ok)){ ['name','spec','price','cost'].forEach(k=>LS.del('pm-c24-pre-'+k)); }
+  // 묶음 연결: 카페24 상품 1개 ↔ ERP 상품 여러 개 (맛·종류)
+  const erpNames=[...new Set($('#pe').value.split('\n').map(x=>x.trim()).filter(Boolean))];
+  if(j.ok && erpNames.length){ const okR=j.results.filter(r=>r.ok&&r.product_no);
+    if(okR.length){ const items=[]; okR.forEach(r=>erpNames.forEach(n=>items.push({mall:r.mall, product_no:String(r.product_no), erp_name:n, c24_name:name})));
+      const a=await rpc('c24_alias_add',{p_token:token, items}).catch(()=>null);
+      $('#out2').insertAdjacentHTML('beforeend', a&&a.ok? `<div class="res ok">🔗 ERP 상품 ${erpNames.length}개와 연결했어요: ${erpNames.map(esc).join(' · ')}</div>` : `<div class="res bad">⚠️ ERP 상품 연결은 저장하지 못했어요. Claude에게 알려 주세요.</div>`); } }
+  if(j.ok&&j.results.every(r=>r.ok)){ ['name','spec','price','cost','erp'].forEach(k=>LS.del('pm-c24-pre-'+k)); }
 };
 
 // ---------- 탭 ----------
